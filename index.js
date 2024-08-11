@@ -8,14 +8,34 @@ app.use(express.json());
 
 const defaultIndex = 'myindex';
 
-client.index({
-  index: defaultIndex,
-  body: {
-    // Your document goes here
+// Check if index exists, and create if it does not
+async function ensureIndexExists() {
+  try {
+    const { body: exists } = await client.indices.exists({ index: defaultIndex });
+    if (!exists) {
+      // Create index if it does not exist
+      const { body: createResponse } = await client.indices.create({
+        index: defaultIndex,
+        body: {
+          mappings: {
+            properties: {
+              title: { type: 'text' },
+              content: { type: 'text' }
+            }
+          }
+        }
+      });
+      console.log('Index created:', createResponse);
+    } else {
+      console.log('Index already exists');
+    }
+  } catch (error) {
+    console.error('Error ensuring index exists:', error);
   }
-}, (err, resp, status) => {
-  console.log(resp);
-});
+}
+
+// Ensure the index exists before starting the server
+ensureIndexExists();
 
 // Add a document
 app.post('/add-document', async (req, res) => {
